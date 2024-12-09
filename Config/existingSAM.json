@@ -1,0 +1,9 @@
+{
+    "ApplicationId": "your-app-registration-id",
+    "ApplicationSecret": "your-app-registration-secret", 
+    "TenantId": "your-msp-tenant-id",
+    "AzureRefreshToken": "your-azure-refresh-token",
+    "DisplayName": "your-app-registration-name",
+    "CreatedOn": "2024-11-08T12:27:22.3548770+01:00",
+    "RefreshToken": "your-refresh-token"
+}
