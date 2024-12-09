@@ -18,6 +18,9 @@ The EasySAM module provides a set of PowerShell scripts designed to simplify the
 To install the EasySAM module, clone the repository and import the module into your PowerShell session.
 
 ## Example Usage
+
+**Disclaimer: Make sure when you are done to kill the powershell session and start a new one, this is to make sure the global:SAMConfig variable is reset.**
+
 To use the EasySAM module, you can call the provided functions to manage application permissions and consent flows as per your requirements. 
 
 See Example below for creating a new SAM application.
