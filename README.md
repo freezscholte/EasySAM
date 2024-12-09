@@ -45,7 +45,10 @@ $customers = [PSCustomObject]@{
 }
 
 Invoke-AppConsentFlow -Customers $customers -Verbose
+```
+The most easy and fastest way is to run the command below in the current powershell session, this will grab the SAM details from the global:SAMConfig variable and consent to all customers in Partner Center.
 
+```powershell
 #Or consent to all customers in Partner Center
 
 Invoke-AppConsentFlow -AllCustomers -Verbose

@@ -229,8 +229,8 @@ function Invoke-NewSAM {
                 }
                 $azureTokenResponse = Get-PartnerSAMTokens @azureParams
 
-                # Set script-level variables
-                Write-Verbose "Setting script-level variables..."
+                # Set global-level variables
+                Write-Verbose "Setting global-level variables..."
                 $global:SAMConfig = [PSCustomObject]@{
                     DisplayName = $DisplayName
                     ApplicationId = $app.AppId
@@ -240,36 +240,36 @@ function Invoke-NewSAM {
                     AzureRefreshToken = $azureTokenResponse.refresh_token
                     CreatedOn = (Get-Date).ToString('o')
                     PCTokenExpiration = @{
-                        ExpiresIn = $pcTokenResponse.expires_in
-                        ExpiresOn = $pcTokenResponse.expires_on
-                        NotBefore = $pcTokenResponse.not_before
+                        ExpiresIn = $(ConvertFrom-UnixTime $pcTokenResponse.expires_in)
+                        ExpiresOn = $(ConvertFrom-UnixTime $pcTokenResponse.expires_on)
+                        NotBefore = $(ConvertFrom-UnixTime $pcTokenResponse.not_before)
                     }
                     AzureTokenExpiration = @{
-                        ExpiresIn = $azureTokenResponse.expires_in
-                        ExpiresOn = $azureTokenResponse.expires_on
-                        NotBefore = $azureTokenResponse.not_before
+                        ExpiresIn = $(ConvertFrom-UnixTime $azureTokenResponse.expires_in)
+                        ExpiresOn = $(ConvertFrom-UnixTime $azureTokenResponse.expires_on)
+                        NotBefore = $(ConvertFrom-UnixTime $azureTokenResponse.not_before)
                     }
                 }
 
                 # Output section
                 Write-Output "`n######### Secure Application Model Details #########"
-                Write-Output "ApplicationId         = '$($script:SAMConfig.ApplicationId)'"
-                Write-Output "ApplicationSecret     = '$($script:SAMConfig.ApplicationSecret)'"
-                Write-Output "TenantID             = '$($script:SAMConfig.TenantId)'"
-                Write-Output "RefreshToken         = '$($script:SAMConfig.RefreshToken)'"
-                Write-Output "AzureRefreshToken    = '$($script:SAMConfig.AzureRefreshToken)'"
+                Write-Output "ApplicationId         = '$($global:SAMConfig.ApplicationId)'"
+                Write-Output "ApplicationSecret     = '$($global:SAMConfig.ApplicationSecret)'"
+                Write-Output "TenantID             = '$($global:SAMConfig.TenantId)'"
+                Write-Output "RefreshToken         = '$($global:SAMConfig.RefreshToken)'"
+                Write-Output "AzureRefreshToken    = '$($global:SAMConfig.AzureRefreshToken)'"
                 Write-Output "`nToken Expiration Details:"
-                Write-Output "PC Token Valid From   = '$(ConvertFrom-UnixTime $script:SAMConfig.PCTokenExpiration.NotBefore)'"
-                Write-Output "PC Token Expires      = '$(ConvertFrom-UnixTime $script:SAMConfig.PCTokenExpiration.ExpiresOn)'"
-                Write-Output "Azure Token Valid From= '$(ConvertFrom-UnixTime $script:SAMConfig.AzureTokenExpiration.NotBefore)'"
-                Write-Output "Azure Token Expires   = '$(ConvertFrom-UnixTime $script:SAMConfig.AzureTokenExpiration.ExpiresOn)'"
+                Write-Output "PC Token Valid From   = '$(ConvertFrom-UnixTime $global:SAMConfig.PCTokenExpiration.NotBefore)'"
+                Write-Output "PC Token Expires      = '$(ConvertFrom-UnixTime $global:SAMConfig.PCTokenExpiration.ExpiresOn)'"
+                Write-Output "Azure Token Valid From= '$(ConvertFrom-UnixTime $global:SAMConfig.AzureTokenExpiration.NotBefore)'"
+                Write-Output "Azure Token Expires   = '$(ConvertFrom-UnixTime $global:SAMConfig.AzureTokenExpiration.ExpiresOn)'"
                 Write-Output "#############################################"
 
                 Write-Verbose "Returning results..."
                 
                 # Display admin consent URL if ConfigurePreconsent is specified
                 if ($ConfigurePreconsent) {
-                    $PreConsentUrl = "https://login.microsoftonline.com/$($script:SAMConfig.TenantId)/adminConsent?client_id=$($script:SAMConfig.ApplicationId)"
+                    $PreConsentUrl = "https://login.microsoftonline.com/$($global:SAMConfig.TenantId)/adminConsent?client_id=$($global:SAMConfig.ApplicationId)"
                     Start-Process $PreConsentUrl
                     Write-Output "`n######### Admin Consent URL #########"
                     Write-Output "Please complete the admin consent by visiting, the page did not open automatically:"

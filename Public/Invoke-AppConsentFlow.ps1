@@ -99,60 +99,77 @@ function Invoke-AppConsentFlow {
         [switch]$existingSAM
     )
 
-    # Initialize SAM configuration
-    $script:SAMConfig = switch ($true) {
-        { $SAMConfigObject } { 
-            Write-Verbose "Using provided SAM configuration object"
-            $SAMConfigObject 
+    $samConfig = $null
+    # Initialize SAM configuration as local variable
+    $samConfig = if ($SAMConfigObject) {
+        Write-Verbose "Using provided SAM configuration object"
+        $SAMConfigObject
+    }
+    elseif ($existingSAM) {
+        Write-Verbose "Importing SAM configuration from file"
+        $config = Import-SAMConfig
+        if (-not $config) {
+            throw "SAM configuration import failed. Please check the configuration."
         }
-        { $existingSAM } { 
-            Write-Verbose "Importing SAM configuration from file"
-            $config = Import-SAMConfig
-            if (-not $config) {
-                throw "SAM configuration import failed. Please check the configuration."
-            }
-            $config
-        }
-        { $script:SAMConfig } { 
-            Write-Verbose "Using existing SAM configuration"
-            $script:SAMConfig 
-        }
-        default { 
-            throw "SAM configuration not found. Please run Invoke-NewSAM first or provide a configuration." 
-        }
+        $config
+    }
+    elseif ($global:SAMConfig) {
+        Write-Verbose "Using existing SAM configuration"
+        $global:SAMConfig
+    }
+    else {
+        throw "SAM configuration not found. Please run Invoke-NewSAM first or provide a configuration."
     }
 
+    # Ensure we have a single object, not an array
+    if ($samConfig -is [Array]) {
+        Write-Verbose "Converting array to single object"
+        $samConfig = $samConfig[0]
+    }
+
+    Write-Verbose "SAM Configuration Type: $($samConfig.GetType().FullName)"
+    Write-Verbose "SAM Configuration:"
+    Write-Verbose ($samConfig | ConvertTo-Json)
+
     try {
-        Write-Verbose "SAM Configuration:"
-        Write-Verbose ($script:SAMConfig | ConvertTo-Json)
         #Generate MSP token using SAM
         $MSPGraphParams = @{
-            ApplicationId     = $script:SAMConfig.ApplicationId.Trim()
-            ApplicationSecret = $script:SAMConfig.ApplicationSecret.Trim()
-            RefreshToken      = $script:SAMConfig.RefreshToken.Trim()
-            TenantID          = $script:SAMConfig.TenantId.Trim()
+            ApplicationId     = $samConfig.ApplicationId
+            ApplicationSecret = $samConfig.ApplicationSecret
+            RefreshToken      = $samConfig.RefreshToken
+            TenantID          = $samConfig.TenantId
         }
         Write-Verbose "Getting MSP token..."
         $MSPtoken = Connect-GraphApiSAM @MSPGraphParams
-
-        # Get the MSP Access Token
-        $AccessTokenParams = @{
-            ApplicationId     = $script:SAMConfig.ApplicationId
-            ApplicationSecret = $script:SAMConfig.ApplicationSecret
-            TenantID          = $script:SAMConfig.TenantId
-        }
-        Write-Verbose "Getting MSP access token..."
-        $MSPAccessToken = Get-PartnerSAMTokens @AccessTokenParams
-
-        if (-not $MSPtoken -or -not $MSPAccessToken) {
-            throw "Failed to generate required tokens"
+        if (-not $MSPtoken) {
+            throw "Failed to generate MSP token"
         }
     }
     catch {
-        Write-Error "Error generating MSP token or access token: $_"
-        Write-Output "Make sure the SAM is preconsented in the tenant"
-        Write-Output "https://login.microsoftonline.com/$($SAMConfig.TenantId)/adminConsent?client_id=$($SAMConfig.ApplicationId)"
-        return
+        Write-Error "Error generating MSP token: $_"
+        throw
+    }
+
+    try {
+        # Get the MSP Access Token
+        $AccessTokenParams = @{
+            ApplicationId     = $samConfig.ApplicationId
+            ApplicationSecret = $samConfig.ApplicationSecret
+            TenantID          = $samConfig.TenantId
+        }
+        Write-Verbose "Getting MSP access token..."
+        $MSPAccessToken = Get-PartnerSAMTokens @AccessTokenParams
+        if (-not $MSPAccessToken) {
+            throw "Failed to generate MSP access token"
+        }
+    }
+    catch {
+        Write-Error "Error generating MSP access token: $_"
+        throw
+    }
+
+    if (-not $MSPtoken -or -not $MSPAccessToken) {
+        throw "Failed to generate required tokens"
     }
 
     try {
@@ -173,12 +190,12 @@ function Invoke-AppConsentFlow {
 
     try {
         # Get application details from MSP Tenant
-        Write-Verbose "Retrieving application details for AppId: $($script:SAMConfig.ApplicationId)"
-        $appDetailsUri = "https://graph.microsoft.com/v1.0/applications?`$filter=appId eq '$($script:SAMConfig.ApplicationId)'"
+        Write-Verbose "Retrieving application details for AppId: $($samConfig.ApplicationId)"
+        $appDetailsUri = "https://graph.microsoft.com/v1.0/applications?`$filter=appId eq '$($samConfig.ApplicationId)'"
         $appDetails = Invoke-RestMethod -Uri $appDetailsUri -Headers $MSPtoken -Method Get -Verbose
-        
+            
         if (-not $appDetails.value) {
-            throw "Application with ID $($script:SAMConfig.ApplicationId) not found"
+            throw "Application with ID $($samConfig.ApplicationId) not found"
         }
         $app = $appDetails.value[0]
 
@@ -197,64 +214,71 @@ function Invoke-AppConsentFlow {
     $applicationGrants = $permissionsConfig.applicationGrants
     $appRoles = $permissionsConfig.appRoles
 
+    # Initialize a list to store failed customers
+    $failedCustomers = @()
+
     # Process each customer tenant
     $Customers | ForEach-Object {
         $currentTenant = $_
         Write-Output "Processing tenant: $($currentTenant.displayName)"
-        
+            
         try {
+            $customerToken = $null
+            $existingApp = $null
+
+            # Try to connect to customer tenant
             try {
-                # Try to connect to customer tenant
                 $CustomerGraphParams = @{
-                    ApplicationId     = $script:SAMConfig.ApplicationId
-                    ApplicationSecret = $script:SAMConfig.ApplicationSecret 
-                    RefreshToken      = $script:SAMConfig.RefreshToken
+                    ApplicationId     = $samConfig.ApplicationId
+                    ApplicationSecret = $samConfig.ApplicationSecret 
+                    RefreshToken      = $samConfig.RefreshToken
                     TenantID          = $currentTenant.customerId
                 }
                 $customerToken = Connect-GraphApiSAM @CustomerGraphParams
 
-                # Check if SAM app exists in tenant
-                $customerHeaders = @{
-                    "Authorization" = $customerToken.Authorization
-                    "Content-Type"  = "application/json"
-                }
+                if ($customerToken) {
+                    # Check if SAM app exists in tenant
+                    $customerHeaders = @{
+                        "Authorization" = $customerToken.Authorization
+                        "Content-Type"  = "application/json"
+                    }
 
-                $filterAppId = [System.Web.HttpUtility]::UrlEncode("appId eq '$($script:SAMConfig.ApplicationId)'")
-                $appUri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=$filterAppId"
-            
-                $existingApp = (Invoke-RestMethod -Uri $appUri -Headers $customerHeaders -Method Get).value
+                    $filterAppId = [System.Web.HttpUtility]::UrlEncode("appId eq '$($samConfig.ApplicationId)'")
+                    $appUri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=$filterAppId"
+                    
+                    $existingApp = (Invoke-RestMethod -Uri $appUri -Headers $customerHeaders -Method Get).value
+                }
             }
             catch {
                 Write-Output "Info: Unable to check existing app in tenant $($currentTenant.displayName). This is expected if app consent is not yet granted."
                 Write-Verbose "Error details: $_"
-                $existingApp = $null
                 # Continue with the consent flow
             }
-            
 
+            # Process existing app if found
             if ($existingApp) {
                 Write-Output "SAM application found in tenant: $($currentTenant.displayName)"
-                
+                    
                 if ($UpdateSamPermission) {
                     Write-Output "Removing existing SAM application..."
                     $spId = $existingApp.id
                     $deleteUri = "https://graph.microsoft.com/v1.0/servicePrincipals/$spId"
-                    
+                        
                     try {
                         # Delete the existing app
                         Invoke-RestMethod -Uri $deleteUri -Headers $customerHeaders -Method Delete
                         Write-Output "Existing SAM application removed, waiting for deletion to propagate..."
-                        
+                            
                         # Wait and verify deletion with exponential backoff
                         $maxAttempts = 6
                         $attempt = 0
                         $waitTime = 10
-                        
+                            
                         do {
                             $attempt++
                             Write-Output "Verification attempt $attempt of $maxAttempts (waiting $waitTime seconds)..."
                             Start-Sleep -Seconds $waitTime
-                            
+                                
                             # Check if app still exists
                             $verifyUri = "https://graph.microsoft.com/v1.0/servicePrincipals?`$filter=$filterAppId"
                             try {
@@ -291,7 +315,7 @@ function Invoke-AppConsentFlow {
                 }
                 else {
                     Write-Output "Skipping tenant as SAM application already exists. Use -UpdateSamPermission to force update."
-                    continue
+                    return
                 }
             }
             else {
@@ -299,34 +323,56 @@ function Invoke-AppConsentFlow {
             }
 
             # Proceed with consent process
-            $consentBody = @{
-                applicationGrants = $applicationGrants
-                appRoles          = $appRoles
-                applicationId     = $app.appId
-                displayName       = $app.displayName
+            try {
+                $consentBody = @{
+                    applicationGrants = $applicationGrants
+                    appRoles          = $appRoles
+                    applicationId     = $app.appId
+                    displayName       = $app.displayName
+                }
+
+                $AppConsentHeaders = @{
+                    Authorization  = "Bearer $($MSPAccessToken.Access_Token)"
+                    'Content-Type' = 'application/json'
+                }
+
+                Write-Verbose "Consent body:"
+                Write-Verbose ($consentBody | ConvertTo-Json -Depth 10)
+
+                $uri = "https://api.partnercenter.microsoft.com/v1/customers/$($currentTenant.customerId)/applicationconsents"
+                    
+                $response = Invoke-RestMethod -Uri $uri -Headers $AppConsentHeaders -Method Post -Body ($consentBody | ConvertTo-Json -Depth 20)
+                Write-Output "Successfully processed tenant: $($currentTenant.displayName)"
+                $response
             }
-
-            $AppConsentHeaders = @{
-                Authorization  = "Bearer $($MSPAccessToken.Access_Token)"
-                'Content-Type' = 'application/json'
+            catch {
+                throw  # Rethrow to be caught by outer catch block
             }
-
-            Write-Verbose "Consent body:"
-            Write-Verbose ($consentBody | ConvertTo-Json -Depth 10)
-
-            $uri = "https://api.partnercenter.microsoft.com/v1/customers/$($currentTenant.customerId)/applicationconsents"
-            
-            $response = Invoke-RestMethod -Uri $uri -Headers $AppConsentHeaders -Method Post -Body ($consentBody | ConvertTo-Json -Depth 20) -ErrorAction Stop
-            Write-Output "Successfully processed tenant: $($currentTenant.displayName)"
-            $response
         }
         catch {
             Write-Error "Error processing tenant $($currentTenant.displayName):"
             Write-Error "Status Code: $($_.Exception.Response.StatusCode.value__)"
             Write-Error "Error Message: $($_.ErrorDetails.Message)"
             Write-Error "Activity ID: $($_.Exception.Response.Headers['RequestId'])"
-            # Just continue to next tenant
-            continue
+            
+            # Add the failed customer to the list
+            $failedCustomers += [PSCustomObject]@{
+                DisplayName = $currentTenant.displayName
+                TenantId    = $currentTenant.customerId
+                Error      = $_.Exception.Message
+            }
+            # Continue to next tenant without breaking the loop
         }
+    }
+
+    # Output the failed customers at the end
+    if ($failedCustomers.Count -gt 0) {
+        Write-Output "The following customers failed to process:"
+        $failedCustomers | ForEach-Object {
+            Write-Output "Customer: $($_.DisplayName), TenantId: $($_.TenantId), Error: $($_.Error)"
+        }
+    }
+    else {
+        Write-Output "All customers processed successfully."
     }
 }

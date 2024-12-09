@@ -33,10 +33,10 @@ function Connect-AzureApiSAM {
         else {
             Write-Verbose "   using the cached credentials"
             $AuthBody = @{
-                client_id     = $script:ApplicationId
-                client_secret = $Script:ApplicationSecret
+                client_id     = $global:ApplicationId
+                client_secret = $global:ApplicationSecret
                 scope         = 'https://management.azure.com/user_impersonation'
-                refresh_token = $script:RefreshToken
+                refresh_token = $global:RefreshToken
                 grant_type    = "refresh_token"
                 
             }

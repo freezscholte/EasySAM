@@ -23,7 +23,7 @@ function Import-SAMConfig {
         }
 
         # Set the script-level configuration
-        $script:SAMConfig = @{
+        $global:SAMConfig = @{
             ApplicationId = $config.ApplicationId
             ApplicationSecret = $config.ApplicationSecret
             TenantId = $config.TenantId
@@ -36,7 +36,7 @@ function Import-SAMConfig {
         Write-Verbose "SAM configuration imported successfully"
         Write-Output "SAM configuration loaded for application: $($config.DisplayName)"
         
-        return [PSCustomObject]$script:SAMConfig
+        return [PSCustomObject]$global:SAMConfig
     }
     catch {
         Write-Error "Failed to import SAM configuration: $_"
