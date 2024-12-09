@@ -1,5 +1,7 @@
-# EasySAM Module
-(Base functionality is complete, but still in development)
+![logo](https://github.com/user-attachments/assets/3359ac89-ec53-4b6c-87e0-6142697069cf)
+
+# EasySAM Modu
+le (Still in development)
 
 ## Overview
 The EasySAM module provides a set of PowerShell scripts designed to simplify the management of Entra application permissions and consent processes specifically for the Secure Application Model (SAM) used in Granular Delegated Admin Privileges (GDAP). This module allows users to automate the creation and management of SAM applications, making it easier to handle permissions for various Azure services in a secure manner.
