@@ -1,6 +1,6 @@
-![logo](https://github.com/user-attachments/assets/3359ac89-ec53-4b6c-87e0-6142697069cf)
+![logo](https://github.com/user-attachments/assets/3359ac89-ec53-4b6c-87e0-6142697069cf | height=250)
 
-# EasySAM Modu
+# EasySAM Module
 (Base functionality is complete, but still in development)
 
 ## Overview
