@@ -52,7 +52,8 @@ Invoke-AppConsentFlow -AllCustomers -Verbose
 
 ```
 
-For more examples see the Examples.md file. 
+For more examples see the Examples.md file. -> [Examples.md](Examples.md)
+
 Keep in mind that for you to able to use the SAM application you need to have the correct GDAP roles assigned to the service account.
 For setting this up you can use Microsoft Lighthouse check this link for more information: https://learn.microsoft.com/en-us/microsoft-365/lighthouse/m365-lighthouse-setup-gdap?view=o365-worldwide
 ## Contributing
