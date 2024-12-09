@@ -56,6 +56,7 @@ function Get-GDAPRelationship {
                 # Create enhanced output object - remove .value since single relationship doesn't have it
                 $enhancedRelationship = $relationship | Select-Object -Property `
                     @{Name='RelationshipId';Expression={$_.id}},
+                    @{Name='Etag';Expression={$_."@odata.etag"}},
                     @{Name='DisplayName';Expression={$_.displayName}},
                     @{Name='Status';Expression={$_.status}},
                     @{Name='CustomerName';Expression={$_.customer.displayName}},
@@ -89,12 +90,14 @@ function Get-GDAPRelationship {
                 # Create enhanced output objects
                 $enhancedRelationships = $relationships.value | Select-Object -Property `
                     @{Name='RelationshipId';Expression={$_.id}},
+                    @{Name='Etag';Expression={$_."@odata.etag"}},
                     @{Name='DisplayName';Expression={$_.displayName}},
                     @{Name='Status';Expression={$_.status}},
                     @{Name='CustomerName';Expression={$_.customer.displayName}},
                     @{Name='CustomerTenantId';Expression={$_.customer.tenantId}},
                     @{Name='StartDate';Expression={$_.activatedDateTime}},
                     @{Name='EndDate';Expression={$_.endDateTime}},
+                    @{Name='Consent Url';Expression={"https://admin.microsoft.com/AdminPortal/Home#/partners/invitation/granularAdminRelationships/$($_.id)"}},
                     @{Name='AssignedRoles';Expression={
                         $_.accessDetails.unifiedRoles | ForEach-Object {
                             $roleId = $_.roleDefinitionId
