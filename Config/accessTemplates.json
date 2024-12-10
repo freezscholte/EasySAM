@@ -1,0 +1,79 @@
+{
+    "templates": {
+        "Standard": {
+            "description": "Standard administrative access with full management capabilities",
+            "roleAssignments": [
+                {
+                    "roleId": "9b895d92-2cd3-44c7-9d02-a6ac2d5ea5c3",
+                    "groupName": "GDAP-Application-Administrators",
+                    "description": "Members can create and manage all aspects of app registrations and enterprise apps"
+                },
+                {
+                    "roleId": "0526716b-113d-4c15-b2c8-68e3c22b9f80",
+                    "groupName": "GDAP-Authentication-Policy-Administrators",
+                    "description": "Members can configure authentication methods, MFA and password policies"
+                },
+                {
+                    "roleId": "892c5842-a9a6-463a-8041-72aa08ca3cf6",
+                    "groupName": "GDAP-Cloud-App-Security-Administrators",
+                    "description": "Members have full access to Microsoft Defender for Cloud Apps"
+                },
+                {
+                    "roleId": "7698a772-787b-4ac8-901f-60d6b08affd2",
+                    "groupName": "GDAP-Cloud-Device-Administrators",
+                    "description": "Members can manage all aspects of devices in Azure AD and Intune"
+                },
+                {
+                    "roleId": "29232cdf-9323-42fd-ade2-1d097af3e4de",
+                    "groupName": "GDAP-Exchange-Administrators",
+                    "description": "Members have full access to manage Exchange Online settings and mailboxes"
+                },
+                {
+                    "roleId": "3a2c62db-5318-420d-8d74-23affee5d9d5",
+                    "groupName": "GDAP-Intune-Administrators",
+                    "description": "Members have full access to manage all aspects of Microsoft Intune"
+                },
+                {
+                    "roleId": "7be44c8a-adaf-4e2a-84d6-ab2649e08a13",
+                    "groupName": "GDAP-Privileged-Authentication-Administrators",
+                    "description": "Members can manage all aspects of authentication methods and MFA"
+                },
+                {
+                    "roleId": "e8611ab8-c189-46e8-94e1-60213ab1f814",
+                    "groupName": "GDAP-Privileged-Role-Administrators",
+                    "description": "Members can manage role assignments in Azure AD and all aspects of Privileged Identity Management"
+                },
+                {
+                    "roleId": "194ae4cb-b126-40b2-bd5b-6091b380977d",
+                    "groupName": "GDAP-Security-Administrators",
+                    "description": "Members have permissions to manage security-related features in Microsoft 365 services"
+                },
+                {
+                    "roleId": "f28a1f50-f6e7-4571-818b-6a12f2af6b6c",
+                    "groupName": "GDAP-SharePoint-Administrators",
+                    "description": "Members have full access to manage SharePoint Online and OneDrive settings"
+                },
+                {
+                    "roleId": "69091246-20e8-4a56-aa4d-066075b2a7a8",
+                    "groupName": "GDAP-Teams-Administrators",
+                    "description": "Members have full access to manage Microsoft Teams settings and meetings"
+                },
+                {
+                    "roleId": "fe930be7-5e62-47db-91af-98c3a49a38b1",
+                    "groupName": "GDAP-User-Administrators",
+                    "description": "Members can manage all aspects of users and groups including resetting passwords"
+                }
+            ]
+        },
+        "ReadOnly": {
+            "description": "Read-only access across the tenant",
+            "roleAssignments": [
+                {
+                    "roleId": "f2ef992c-3afb-46b9-b7cf-a126ee74c451",
+                    "groupName": "GDAP-Global-Readers",
+                    "description": "Members have global read access across Microsoft 365 services"
+                }
+            ]
+        }
+    }
+}

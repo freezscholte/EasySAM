@@ -86,20 +86,17 @@ function Remove-GDAPRelationship {
                     $terminateResponse = Invoke-RestMethod -Uri $terminateUri -Headers $graphToken -Method Post -Body $terminateBody -ContentType 'application/json'
                     Write-Verbose "Termination request created. Waiting for termination to complete. $terminateResponse"
                     
-                    # Wait for termination to complete with timeout
+                    # Track the termination operation
+                    $operationUri = "https://graph.microsoft.com/v1.0/tenantRelationships/delegatedAdminRelationships/$RelationshipId/operations"
+                    $operation = Invoke-RestMethod -Uri $operationUri -Headers $graphToken -Method Get
+
+                    # Monitor operation status instead of relationship status
                     $timeout = (Get-Date).AddMinutes(5)
                     do {
                         Start-Sleep -Seconds 5
-                        $relationship = Invoke-RestMethod -Uri $getUri -Headers $graphToken -Method Get
-                        $Status = $relationship.status
-                        $Etag = $relationship.'@odata.etag'
-                        Write-Verbose "Current status: $Status"
-                        
-                        if ((Get-Date) -gt $timeout) {
-                            Write-Error "Timeout waiting for termination to complete"
-                            return
-                        }
-                    } while ($Status -ne 'terminated')
+                        $operation = Invoke-RestMethod -Uri "$operationUri/$($operation.id)" -Headers $graphToken -Method Get
+                        Write-Verbose "Operation status: $($operation.status)"
+                    } until ($operation.status -eq 'succeeded' -or $operation.status -eq 'failed' -or (Get-Date) -gt $timeout)
                 }
                 'terminated' {
                     Write-Verbose "Relationship is already terminated. Proceeding with deletion."

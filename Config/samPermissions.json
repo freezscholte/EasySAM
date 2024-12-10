@@ -7,7 +7,7 @@
     "applicationGrants": [
       {
         "enterpriseApplicationId": "00000003-0000-0000-c000-000000000000",
-        "scope": "Directory.ReadWrite.All,Directory.AccessAsUser.All"
+        "scope": "Directory.ReadWrite.All,Directory.AccessAsUser.All,DelegatedAdminRelationship.ReadWrite.All,DelegatedPermissionGrant.ReadWrite.All, Application.ReadWrite.All"
       },
       {
         "enterpriseApplicationId": "fa3d9a0c-3fb0-42cc-9193-47c7ecd2edbd",
