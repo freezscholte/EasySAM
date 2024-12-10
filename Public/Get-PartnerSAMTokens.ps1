@@ -69,9 +69,11 @@ function Get-PartnerSAMTokens {
     begin {
         Write-Verbose "Starting OAuth flow for tenant: $TenantId"
         
-        # Add required assembly
+        # Add required assembly and wait for propagation
         try {
             Add-Type -AssemblyName System.Web
+            Write-Verbose "Waiting for application permissions to propagate..."
+            Start-Sleep -Seconds 10
         }
         catch {
             throw "Failed to load System.Web assembly: $_"
@@ -118,14 +120,28 @@ function Get-PartnerSAMTokens {
             )
             
             try {
+                # Use direct string concatenation for the body as in the working version
                 $body = "grant_type=authorization_code&client_id=$ApplicationId&client_secret=$ApplicationSecret&code=$AuthCode&redirect_uri=$RedirectUri&scope=$Scope"
-                $headers = @{ 'Content-Type' = 'application/x-www-form-urlencoded' }
-                $tokenEndpoint = "https://login.microsoftonline.com/$TenantId/oauth2/token"
                 
-                $response = Invoke-RestMethod -Method POST -Uri $tokenEndpoint -Body $body -Headers $headers
+                $headers = @{ 
+                    'Content-Type' = 'application/x-www-form-urlencoded'
+                }
+
+                Write-Verbose "Attempting to exchange code for token..."
+                Write-Verbose "Token endpoint: https://login.microsoftonline.com/$TenantId/oauth2/token"
+                
+                $response = Invoke-RestMethod `
+                    -Method POST `
+                    -Uri "https://login.microsoftonline.com/$TenantId/oauth2/token" `
+                    -Body $body `
+                    -Headers $headers `
+                    -ErrorAction Stop
+
+                Write-Verbose "Successfully exchanged code for token"
                 return $response
             }
             catch {
+                Write-Verbose "Token exchange failed. Error details: $($_.Exception.Message)"
                 throw "Failed to exchange code for token: $_"
             }
         }
@@ -133,11 +149,28 @@ function Get-PartnerSAMTokens {
 
     process {
         try {
-            # Create and start HTTP listener
-            $listener = [System.Net.HttpListener]::new()
-            $listener.Prefixes.Add($listenerPrefix)
-            $listener.Start()
-            Write-Verbose "Started HTTP listener on $listenerPrefix"
+            # Create and start HTTP listener with retry logic
+            $maxRetries = 3
+            $retryCount = 0
+            $retryDelaySeconds = 2
+
+            do {
+                try {
+                    $listener = [System.Net.HttpListener]::new()
+                    $listener.Prefixes.Add($listenerPrefix)
+                    $listener.Start()
+                    Write-Verbose "Started HTTP listener on $listenerPrefix"
+                    break
+                }
+                catch {
+                    $retryCount++
+                    if ($retryCount -ge $maxRetries) {
+                        throw "Failed to start HTTP listener after $maxRetries attempts: $_"
+                    }
+                    Write-Verbose "Retry $retryCount/$maxRetries : Failed to start listener. Waiting $retryDelaySeconds seconds..."
+                    Start-Sleep -Seconds $retryDelaySeconds
+                }
+            } while ($retryCount -lt $maxRetries)
 
             # Construct and open authorization URL
             $authUrl = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/authorize?" + 
@@ -213,10 +246,21 @@ function Get-PartnerSAMTokens {
             throw
         }
         finally {
-            if ($null -ne $listener -and $listener.IsListening) {
-                $listener.Stop()
-                $listener.Close()
-                Write-Verbose "HTTP listener stopped and closed"
+            if ($null -ne $listener) {
+                try {
+                    # Add a small delay before closing the listener
+                    Start-Sleep -Seconds 2
+                    
+                    if ($listener.IsListening) {
+                        $listener.Stop()
+                        Start-Sleep -Milliseconds 500
+                        $listener.Close()
+                        Write-Verbose "HTTP listener stopped and closed successfully"
+                    }
+                }
+                catch {
+                    Write-Warning "Error while closing HTTP listener: $_"
+                }
             }
         }
     }

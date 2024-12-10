@@ -240,14 +240,14 @@ function Invoke-NewSAM {
                     AzureRefreshToken = $azureTokenResponse.refresh_token
                     CreatedOn = (Get-Date).ToString('o')
                     PCTokenExpiration = @{
-                        ExpiresIn = $(ConvertFrom-UnixTime $pcTokenResponse.expires_in)
-                        ExpiresOn = $(ConvertFrom-UnixTime $pcTokenResponse.expires_on)
-                        NotBefore = $(ConvertFrom-UnixTime $pcTokenResponse.not_before)
+                        ExpiresIn = [Int64]$pcTokenResponse.expires_in
+                        ExpiresOn = [Int64]$pcTokenResponse.expires_on
+                        NotBefore = [Int64]$pcTokenResponse.not_before
                     }
                     AzureTokenExpiration = @{
-                        ExpiresIn = $(ConvertFrom-UnixTime $azureTokenResponse.expires_in)
-                        ExpiresOn = $(ConvertFrom-UnixTime $azureTokenResponse.expires_on)
-                        NotBefore = $(ConvertFrom-UnixTime $azureTokenResponse.not_before)
+                        ExpiresIn = [Int64]$azureTokenResponse.expires_in
+                        ExpiresOn = [Int64]$azureTokenResponse.expires_on
+                        NotBefore = [Int64]$azureTokenResponse.not_before
                     }
                 }
 
