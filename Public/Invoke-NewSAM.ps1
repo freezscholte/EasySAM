@@ -110,14 +110,14 @@ function Invoke-NewSAM {
                 # Process application grants (delegated permissions)
                 foreach ($grant in $permissionsConfig.applicationGrants) {
                     if (-not $resourcePermissions[$grant.enterpriseApplicationId]) {
-                        $resourcePermissions[$grant.enterpriseApplicationId] = @()
+                        $resourcePermissions[$grant.enterpriseApplicationId] = [System.Collections.Generic.List[object]]::new()
                     }
                     
                     foreach ($permissionName in ($grant.scope -split ',')) {
                         $permission = Get-PermissionId -ResourceAppId $grant.enterpriseApplicationId -PermissionName $permissionName.Trim()
                         # Only add if not already present
                         if (-not ($resourcePermissions[$grant.enterpriseApplicationId] | Where-Object { $_.Id -eq $permission.Id })) {
-                            $resourcePermissions[$grant.enterpriseApplicationId] += $permission
+                            $resourcePermissions[$grant.enterpriseApplicationId].Add($permission)
                         }
                     }
                 }

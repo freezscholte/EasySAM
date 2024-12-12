@@ -19,6 +19,11 @@ Examples: P30D (30 days), P1Y (1 year), P1Y6M (1 year and 6 months)
 .PARAMETER AccessDetails
 An array of role definition IDs that specify the administrative privileges to be granted.
 
+.PARAMETER UseTemplate
+The template name to use for the GDAP relationship. Valid values are:
+- 'Standard'
+- 'ReadOnly'
+
 .PARAMETER AutoExtendDuration
 The duration for automatic extension of the relationship. Valid values are:
 - 'P0D' (No auto-extension)
@@ -73,16 +78,19 @@ Creates a new GDAP relationship that will automatically extend for 180 days afte
 https://learn.microsoft.com/en-us/partner-center/gdap-introduction
 #>
 function New-GDAPRelationship {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Manual')]
     param (
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'Template')]
         [ValidateLength(1, 50)]
         [string]$DisplayName,
 
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Manual')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Template')]
         [string]$CustomerId,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'Template')]
         [ValidatePattern('^P(?:\d+Y)?(?:\d+M)?(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+S)?)?$')]
         [ValidateScript({
             $duration = $_
@@ -94,20 +102,44 @@ function New-GDAPRelationship {
         }, ErrorMessage = "Duration must be between P1D and P2Y inclusive")]
         [string]$Duration,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
         [string[]]$AccessDetails,
 
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'Template')]
+        [ValidateSet('Standard', 'ReadOnly')]
+        [string]$UseTemplate,
+
+        [Parameter(Mandatory = $false, ParameterSetName = 'Manual')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Template')]
         [ValidateSet('P0D', 'PT0S', 'P180D')]
         [string]$AutoExtendDuration = 'PT0S',
 
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Manual')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Template')]
         [PSCustomObject]$SAMConfigObject
     )
 
     begin {
         Write-Verbose "Initializing New-GDAPRelationship"
         
+        # Add template processing logic
+        if ($PSCmdlet.ParameterSetName -eq 'Template') {
+            try {
+                $templatePath = Join-Path $PSScriptRoot '..' 'Config' 'accessTemplates.json'
+                $templateContent = Get-Content -Path $templatePath -Raw | ConvertFrom-Json
+                
+                if (-not $templateContent.templates.$UseTemplate) {
+                    throw "Template '$UseTemplate' not found in accessTemplates.json"
+                }
+                
+                Write-Verbose "Using template: $UseTemplate"
+                $AccessDetails = $templateContent.templates.$UseTemplate.roleAssignments.roleId
+            }
+            catch {
+                throw "Failed to process template: $_"
+            }
+        }
+
         $samConfig = if ($SAMConfigObject) { 
             Write-Verbose "Using provided SAM configuration object"
             $SAMConfigObject 

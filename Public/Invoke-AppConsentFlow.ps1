@@ -99,7 +99,7 @@ function Invoke-AppConsentFlow {
         [switch]$existingSAM
     )
 
-    $samConfig = $null
+    
     # Initialize SAM configuration as local variable
     $samConfig = if ($SAMConfigObject) {
         Write-Verbose "Using provided SAM configuration object"
@@ -121,11 +121,6 @@ function Invoke-AppConsentFlow {
         throw "SAM configuration not found. Please run Invoke-NewSAM first or provide a configuration."
     }
 
-    # Ensure we have a single object, not an array
-    if ($samConfig -is [Array]) {
-        Write-Verbose "Converting array to single object"
-        $samConfig = $samConfig[0]
-    }
 
     Write-Verbose "SAM Configuration Type: $($samConfig.GetType().FullName)"
     Write-Verbose "SAM Configuration:"
