@@ -15,7 +15,11 @@ The EasySAM module provides a set of PowerShell scripts designed to simplify the
 - **Remove Graph Module dependency**: Remove the dependency on the Graph module and convert to native API calls.
 
 ## Installation
-To install the EasySAM module, clone the repository and import the module into your PowerShell session.
+
+1. Manually download the zip from this repository and extract it to a folder of your choice.
+2. Or run the following command in a Powershell 7.4+ terminal: ``` iex ($(irm https://raw.githubusercontent.com/freezscholte/EasySAM/main/Install.ps1?v=1)) ```
+
+**Keep in mind that this will extract the module to the current directory and import it.**
 
 ## Example Usage
 
